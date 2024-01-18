@@ -53,3 +53,13 @@ export const AppDataSource = new DataSource({
 	subscribers: [],
 });
 ```
+
+## Encryption setup
+
+1. Run `npm i bcryptjs jsonwebtoken` command
+2. Create `npm i -D @types/bcryptjs @types/jsonwebtoken` file
+
+## dotenv setup
+
+1. Run `npm i dotenv` command
+2. Create `npm i -D @types/dotenv` file
