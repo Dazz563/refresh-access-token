@@ -85,14 +85,14 @@ export const login = async (req: Request, res: Response) => {
 		// Set refreshToken in cookie
 		res.cookie('refreshToken', refreshToken, {
 			httpOnly: true,
-			maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
+			maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week (adjust according to application needs)
 		});
 
 		// Save refreshToken to database
 		await tokenRepository.save({
 			userId: user.id,
 			token: refreshToken,
-			expiredAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 1 week
+			expiredAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 1 week (adjust according to application needs)
 		});
 
 		const token = signJwt(
@@ -102,7 +102,7 @@ export const login = async (req: Request, res: Response) => {
 			},
 			'JWT_ACCESS_TOKEN',
 			{
-				expiresIn: '30s',
+				expiresIn: '30s', // up this to 15 minutes just for testing (adjust according to application needs)
 			}
 		);
 
@@ -152,6 +152,8 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
 		// Validate presence of refreshToken
 		const payload: JwtPayload = verifyJwt(refreshToken, 'JWT_REFRESH_TOKEN');
 
+		console.log('payload', payload);
+
 		if (!payload) {
 			return res.status(401).json({error: 'unauthenticated'});
 		}
@@ -164,8 +166,12 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
 			},
 		});
 
+		console.log('dbToken', dbToken);
+
 		// Check the expiration date of the token
 		if (!dbToken) {
+			console.log('trigger');
+
 			return res.status(401).json({error: 'unauthenticated'});
 		}
 

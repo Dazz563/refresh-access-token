@@ -9,6 +9,6 @@ export class Token extends Model {
 	@Column()
 	token: string;
 
-	@DeleteDateColumn({name: 'expired_at'})
+	@Column({name: 'expired_at'})
 	expiredAt: Date;
 }
