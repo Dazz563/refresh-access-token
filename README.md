@@ -9,12 +9,14 @@
 {
     "compilerOptions": {
         "target": "es2016",
-        "experimentalDecorators": true,
-        "emitDecoratorMetadata": true,
-        "esModuleInterop": true,
-        "forceConsistentCasingInFileNames": true,
-        "strict": true,
-        "skipLibCheck": true
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"strict": true,
+		"skipLibCheck": true,
+		"moduleResolution": "NodeNext",
+		"module": "NodeNext"
     }
 }
 
@@ -31,3 +33,23 @@
 ## Database setup
 
 1. Run `npm i typeorm reflect-metadata mysql2` command
+2. Create `data-source.ts` file
+
+```
+import 'reflect-metadata';
+import {DataSource} from 'typeorm';
+
+export const AppDataSource = new DataSource({
+	type: 'mysql',
+	host: 'localhost',
+	port: 3306,
+	username: 'root',
+	password: 'Darrennienaber01',
+	database: 'refresh_token',
+	synchronize: true,
+	logging: false,
+	entities: ['src/entity/**/*{.ts,.js}'],
+	migrations: ['src/migration/**/*{.ts,.js}'],
+	subscribers: [],
+});
+```
