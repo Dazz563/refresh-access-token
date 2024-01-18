@@ -10,5 +10,5 @@ export class User extends Model {
 	email: string;
 
 	@Column()
-	password: number;
+	password: string;
 }
