@@ -4,8 +4,11 @@ import bcryptjs from 'bcryptjs';
 import {AppDataSource} from '../config/data-source';
 import {User} from '../entity/user.entity';
 import {signJwt, verifyJwt} from '../utils/jwt';
+import {Token} from '../entity/token.entity';
+import {MoreThanOrEqual} from 'typeorm';
 
 const userRepository = AppDataSource.getRepository(User);
+const tokenRepository = AppDataSource.getRepository(Token);
 
 export interface JwtPayload {
 	userId: number;
@@ -52,6 +55,8 @@ export const login = async (req: Request, res: Response) => {
 			where: {email},
 		});
 
+		console.log('user', user);
+
 		// Validate presence of user
 		if (!user) {
 			return res.status(404).json({error: 'Invalid credentials'});
@@ -65,17 +70,7 @@ export const login = async (req: Request, res: Response) => {
 			return res.status(401).json({error: 'Invalid password'});
 		}
 
-		// Create accessToken and refreshToken
-		const accessToken = signJwt(
-			{
-				userId: user.id,
-				email: user.email,
-			},
-			'JWT_ACCESS_TOKEN',
-			{
-				expiresIn: '30s',
-			}
-		);
+		// Create refreshToken
 		const refreshToken = signJwt(
 			{
 				userId: user.id,
@@ -87,19 +82,32 @@ export const login = async (req: Request, res: Response) => {
 			}
 		);
 
-		// Create cookies for accessToken and refreshToken
-		res.cookie('accessToken', accessToken, {
-			httpOnly: true,
-			maxAge: 24 * 60 * 60 * 1000, // 1 day
-		});
-
+		// Set refreshToken in cookie
 		res.cookie('refreshToken', refreshToken, {
 			httpOnly: true,
 			maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
 		});
 
+		// Save refreshToken to database
+		await tokenRepository.save({
+			userId: user.id,
+			token: refreshToken,
+			expiredAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 1 week
+		});
+
+		const token = signJwt(
+			{
+				userId: user.id,
+				email: user.email,
+			},
+			'JWT_ACCESS_TOKEN',
+			{
+				expiresIn: '30s',
+			}
+		);
+
 		return res.json({
-			message: 'Login successful',
+			token,
 		});
 	} catch (error) {
 		console.error('Error:', error);
@@ -109,7 +117,7 @@ export const login = async (req: Request, res: Response) => {
 
 export const getAuthenticatedUser = async (req: Request, res: Response) => {
 	try {
-		const accessToken = req.cookies['accessToken'];
+		const accessToken = req.header('Authorization')?.split(' ')[1] || '';
 
 		// Validate presence of accessToken
 		const payload: JwtPayload = verifyJwt(accessToken, 'JWT_ACCESS_TOKEN');
@@ -148,8 +156,21 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
 			return res.status(401).json({error: 'unauthenticated'});
 		}
 
+		// Find token in database
+		const dbToken = await tokenRepository.findOne({
+			where: {
+				userId: payload.userId,
+				expiredAt: MoreThanOrEqual(new Date()),
+			},
+		});
+
+		// Check the expiration date of the token
+		if (!dbToken) {
+			return res.status(401).json({error: 'unauthenticated'});
+		}
+
 		// Create accessToken and refreshToken
-		const accessToken = signJwt(
+		const token = signJwt(
 			{
 				userId: payload.userId,
 				email: payload.email,
@@ -160,21 +181,27 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
 			}
 		);
 
-		res.cookie('accessToken', accessToken, {
-			httpOnly: true,
-			maxAge: 24 * 60 * 60 * 1000, // 1 day
+		return res.json({
+			token,
 		});
-
-		return res.json({message: 'Successfully refreshed access token'});
 	} catch (error) {
 		console.error('Error:', error);
 		return res.status(401).json({error: 'unauthenticated'});
 	}
 };
 
-export const logout = (req: Request, res: Response) => {
-	res.clearCookie('accessToken');
-	res.clearCookie('refreshToken');
+export const logout = async (req: Request, res: Response) => {
+	try {
+		const refreshToken = req.cookies['refreshToken'];
 
-	return res.json({message: 'Successfully logged out'});
+		// Delete refreshToken from database
+		await tokenRepository.delete({token: refreshToken});
+
+		res.clearCookie('refreshToken');
+
+		return res.json({message: 'Successfully logged out'});
+	} catch (error) {
+		console.error('Error:', error);
+		return res.status(500).json({error: 'Internal Server Error'});
+	}
 };
