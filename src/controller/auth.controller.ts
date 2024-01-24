@@ -17,17 +17,18 @@ export interface JwtPayload {
 
 export const register = async (req: Request, res: Response) => {
 	try {
-		const {name, email, password} = req.body;
+		const {name, surname, email, password} = req.body;
 		console.log('req body: ', req.body);
 
 		// Validate presence of name, email, and password
-		if (!name || !email || !password) {
+		if (!name || !surname || !email || !password) {
 			return res.status(400).json({error: 'Missing required fields'});
 		}
 
 		// Save user to database
 		const user = await userRepository.save({
 			name,
+			surname,
 			email,
 			password: await bcryptjs.hash(password, 12),
 		});
@@ -102,7 +103,8 @@ export const login = async (req: Request, res: Response) => {
 			},
 			'JWT_ACCESS_TOKEN',
 			{
-				expiresIn: '30s', // up this to 15 minutes just for testing (adjust according to application needs)
+				// expiresIn: '30s', // up this to 15 minutes just for testing (adjust according to application needs)
+				expiresIn: '5m', // up this to 15 minutes just for testing (adjust according to application needs)
 			}
 		);
 
@@ -199,8 +201,6 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
 export const logout = async (req: Request, res: Response) => {
 	try {
 		const refreshToken = req.cookies['refreshToken'];
-
-		console.log('refreshToken', refreshToken);
 
 		// Delete refreshToken from database
 		await tokenRepository.delete({token: refreshToken});
