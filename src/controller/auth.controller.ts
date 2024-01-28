@@ -44,7 +44,7 @@ export const register = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
 	try {
 		const {email, password} = req.body;
-		console.log('req body: ', req.body);
+		// console.log('req body: ', req.body);
 
 		// Validate presence of email and password
 		if (!email || !password) {
@@ -56,7 +56,7 @@ export const login = async (req: Request, res: Response) => {
 			where: {email},
 		});
 
-		console.log('user', user);
+		// console.log('user', user);
 
 		// Validate presence of user
 		if (!user) {
@@ -103,8 +103,8 @@ export const login = async (req: Request, res: Response) => {
 			},
 			'JWT_ACCESS_TOKEN',
 			{
-				// expiresIn: '30s', // up this to 15 minutes just for testing (adjust according to application needs)
-				expiresIn: '5m', // up this to 15 minutes just for testing (adjust according to application needs)
+				expiresIn: '30s', // up this to 15 minutes just for testing (adjust according to application needs)
+				// expiresIn: '5m', // up this to 15 minutes just for testing (adjust according to application needs)
 			}
 		);
 
@@ -150,11 +150,10 @@ export const getAuthenticatedUser = async (req: Request, res: Response) => {
 export const refreshAccessToken = async (req: Request, res: Response) => {
 	try {
 		const refreshToken = req.cookies['refreshToken'];
+		console.log('refreshToken', refreshToken);
 
 		// Validate presence of refreshToken
 		const payload: JwtPayload = verifyJwt(refreshToken, 'JWT_REFRESH_TOKEN');
-
-		console.log('payload', payload);
 
 		if (!payload) {
 			return res.status(401).json({error: 'unauthenticated'});
@@ -168,7 +167,7 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
 			},
 		});
 
-		console.log('dbToken', dbToken);
+		// console.log('dbToken', dbToken);
 
 		// Check the expiration date of the token
 		if (!dbToken) {
@@ -186,6 +185,7 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
 			'JWT_ACCESS_TOKEN',
 			{
 				expiresIn: '30s',
+				// expiresIn: '5m', // up this to 15 minutes just for testing (adjust according to application needs)
 			}
 		);
 
